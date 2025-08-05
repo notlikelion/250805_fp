@@ -12,7 +12,9 @@ public class Solution04 {
         // 바나나입니다
 //        System.out.println(list.stream().map(Solution04::change).toList());
         System.out.println(list.stream().map(
-                x -> x + "입니다" // 개수가 맞는 매개변수 -> (return에 들어갈 표현식)
+//                "🐒 %s 🐒"::formatted
+//                x -> "🐒 %s 🐒".formatted(x) // 개수가 맞는 매개변수 -> (return에 들어갈 표현식)
+                x -> {return "🐒 %s 🐒".formatted(x);}
                 // Python : lambda x : x + "입니다"
                 // JS : x => x + "입니다"
         ).toList());
