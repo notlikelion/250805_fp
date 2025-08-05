@@ -4,7 +4,11 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Scanner;
 
@@ -143,7 +147,15 @@ public class ImageGen {
                     .replace("\\n", "")
                     .replace("\"", "")
                     .trim();
-            System.out.println(image64);
+//            System.out.println(image64);
+            byte[] imageBytes = Base64.getDecoder().decode(image64);
+            String outputPath = "%s.png".formatted(prompt.replace(" ", "_"));
+            Path filePath = Paths.get(outputPath);
+            try {
+                Files.write(filePath, imageBytes);
+            } catch (Exception e) {
+                System.err.println(e.getMessage());
+            }
         }
 
     }
