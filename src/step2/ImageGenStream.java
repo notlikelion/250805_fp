@@ -14,7 +14,7 @@ public class ImageGenStream {
         // 거기에 걸맞은 프롬프트를 만들고
         // 그 프롬프트로 이미지 생성 요청
         Scanner sc = new Scanner(System.in);
-        int size = 3;
+        int size = 2;
         // // 0, 1, 2 -> int인 stream.
 //        System.out.println(
 //                Arrays.toString(
@@ -57,23 +57,28 @@ public class ImageGenStream {
                         })
                         .map(x -> {
                             try {
-                                return httpClient.send(
+                                HttpResponse<String> response = httpClient.send(
                                         HttpRequest.newBuilder()
-                                            .uri(URI.create(urlTemplate.formatted("gemini-2.0-flash")))
-                                            .headers("Content-Type", "application/json",
+                                                .uri(URI.create(urlTemplate.formatted("gemini-2.0-flash")))
+                                                .headers("Content-Type", "application/json",
                                                         "X-goog-api-key", System.getenv("GEMINI_API_KEY"))
-                                            .POST(
-                                                HttpRequest.BodyPublishers.ofString(promptTemplate.formatted(x))
-                                            )
-                                            .build()
+                                                .POST(
+                                                        HttpRequest.BodyPublishers.ofString(promptTemplate.formatted(x))
+                                                )
+                                                .build()
                                         , HttpResponse.BodyHandlers.ofString());
+                                return response.body();
                             } catch (Exception ex) {
                                 System.err.println(ex.getMessage());
                             }
                             return null;
                         })
+                        .map(x -> x.split("\"text\": \"")[1] // 0, 1, 2....
+                                .split("}")[0]
+                                .replace("\\n", "")
+                                .replace("\"", "")
+                                .trim())
                         .toList()
         );
     }
-
 }
