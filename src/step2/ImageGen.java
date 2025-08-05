@@ -11,10 +11,11 @@ import java.util.Scanner;
 public class ImageGen {
     // 실행
     public static void main(String[] args) {
-        ImageGen gen = new ImageGen(3);
+        ImageGen gen = new ImageGen(2);
 //        gen.inputData(5);
         gen.inputData();
         gen.makeImagePrompt();
+        gen.generateImage();
     }
 
     // 빈 리스트
@@ -114,8 +115,29 @@ public class ImageGen {
     }
 
     void generateImage() {
+        String model = "gemini-2.0-flash-preview-image-generation";
+        String url = "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent".formatted(model); // 인터넷링크
+        // gemini-2.0-flash -> gemini-2.0-flash-preview-image-generation
         for (String prompt : imagePromptList) {
-
+            String result = callAPI(url, """
+                    {
+                        "contents": [
+                          {
+                            "role": "user",
+                            "parts": [
+                              {
+                                "text": "%s"
+                              },
+                            ]
+                          },
+                        ],
+                        "generationConfig": {
+                          "responseModalities": ["IMAGE", "TEXT"],
+                        },
+                    }
+                    """.formatted(prompt));
+            System.out.println(result);
         }
+
     }
 }
