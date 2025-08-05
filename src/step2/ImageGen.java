@@ -136,7 +136,14 @@ public class ImageGen {
                         },
                     }
                     """.formatted(prompt));
-            System.out.println(result);
+//            System.out.println(result);
+            String image64 = result
+                    .split("\"data\": \"")[1] // 0, 1, 2....
+                    .split("}")[0]
+                    .replace("\\n", "")
+                    .replace("\"", "")
+                    .trim();
+            System.out.println(image64);
         }
 
     }
