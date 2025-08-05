@@ -4,7 +4,11 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Scanner;
 import java.util.stream.IntStream;
 
@@ -47,38 +51,126 @@ public class ImageGenStream {
             ]
           }
         """;
-        System.out.println(
-                IntStream
-                        .range(0, size)
-                        .boxed() // 자유롭게 쓸 수 있음
-                        .map(x -> {
-                            System.out.print("좋아하는 캐릭터는? : ");
-                            return sc.nextLine();
-                        })
-                        .map(x -> {
+//        System.out.println(
+//                IntStream
+//                        .range(0, size)
+//                        .boxed() // 자유롭게 쓸 수 있음
+//                        .map(x -> {
+//                            System.out.print("좋아하는 캐릭터는? : ");
+//                            return sc.nextLine();
+//                        })
+//                        .map(x -> {
+//                            try {
+//                                HttpResponse<String> response = httpClient.send(
+//                                        HttpRequest.newBuilder()
+//                                                .uri(URI.create(urlTemplate.formatted("gemini-2.0-flash")))
+//                                                .headers("Content-Type", "application/json",
+//                                                        "X-goog-api-key", System.getenv("GEMINI_API_KEY"))
+//                                                .POST(
+//                                                        HttpRequest.BodyPublishers.ofString(promptTemplate.formatted(x))
+//                                                )
+//                                                .build()
+//                                        , HttpResponse.BodyHandlers.ofString());
+//                                return response.body();
+//                            } catch (Exception ex) {
+//                                System.err.println(ex.getMessage());
+//                            }
+//                            return null;
+//                        })
+//                        .filter(x -> x != null) // 조금 안전하게
+//                        .map(x -> x.split("\"text\": \"")[1] // 0, 1, 2....
+//                                .split("}")[0]
+//                                .replace("\\n", "")
+//                                .replace("\"", "")
+//                                .trim())
+//                        .toList()
+//        );
+
+        String imageTemplate = """
+                {
+                        "contents": [
+                          {
+                            "role": "user",
+                            "parts": [
+                              {
+                                "text": "%s"
+                              },
+                            ]
+                          },
+                        ],
+                        "generationConfig": {
+                          "responseModalities": ["IMAGE", "TEXT"],
+                        },
+                    }
+                """;
+
+        IntStream
+                .range(0, size)
+                .boxed() // 자유롭게 쓸 수 있음
+                .map(x -> {
+                    System.out.print("좋아하는 캐릭터는? : ");
+                    return sc.nextLine();
+                })
+                .map(x -> {
+                    try {
+                        HttpResponse<String> response = httpClient.send(
+                                HttpRequest.newBuilder()
+                                        .uri(URI.create(urlTemplate.formatted("gemini-2.0-flash")))
+                                        .headers("Content-Type", "application/json",
+                                                "X-goog-api-key", System.getenv("GEMINI_API_KEY"))
+                                        .POST(
+                                                HttpRequest.BodyPublishers.ofString(promptTemplate.formatted(x))
+                                        )
+                                        .build()
+                                , HttpResponse.BodyHandlers.ofString());
+                        return response.body();
+                    } catch (Exception ex) {
+                        System.err.println(ex.getMessage());
+                    }
+                    return null;
+                })
+                .filter(x -> x != null) // 조금 안전하게
+                .map(x -> x.split("\"text\": \"")[1] // 0, 1, 2....
+                        .split("}")[0]
+                        .replace("\\n", "")
+                        .replace("\"", "")
+                        .trim())
+                .map(x -> {
+                    try {
+                        HttpResponse<String> response = httpClient.send(
+                                HttpRequest.newBuilder()
+                                        .uri(URI.create(urlTemplate.formatted("gemini-2.0-flash-preview-image-generation")))
+                                        .headers("Content-Type", "application/json",
+                                                "X-goog-api-key", System.getenv("GEMINI_API_KEY"))
+                                        .POST(
+                                                HttpRequest.BodyPublishers.ofString(imageTemplate.formatted(x))
+                                        )
+                                        .build()
+                                , HttpResponse.BodyHandlers.ofString());
+                        return response.body();
+                    } catch (Exception ex) {
+                        System.err.println(ex.getMessage());
+                    }
+                    return null;
+                })
+                .filter(x -> x != null) // 조금 안전하게
+                .map(x -> x.split("\"data\": \"")[1] // 0, 1, 2....
+                        .split("}")[0]
+                        .replace("\\n", "")
+                        .replace("\"", "")
+                        .trim())
+                // base64 image
+                .forEach(
+                        x -> {
+                            byte[] imageBytes = Base64.getDecoder().decode(x);
+                            String outputPath = "%s.png".formatted(System.currentTimeMillis());
+                            Path filePath = Paths.get(outputPath);
                             try {
-                                HttpResponse<String> response = httpClient.send(
-                                        HttpRequest.newBuilder()
-                                                .uri(URI.create(urlTemplate.formatted("gemini-2.0-flash")))
-                                                .headers("Content-Type", "application/json",
-                                                        "X-goog-api-key", System.getenv("GEMINI_API_KEY"))
-                                                .POST(
-                                                        HttpRequest.BodyPublishers.ofString(promptTemplate.formatted(x))
-                                                )
-                                                .build()
-                                        , HttpResponse.BodyHandlers.ofString());
-                                return response.body();
-                            } catch (Exception ex) {
-                                System.err.println(ex.getMessage());
+                                Files.write(filePath, imageBytes);
+                            } catch (Exception e) {
+                                System.err.println(e.getMessage());
                             }
-                            return null;
-                        })
-                        .map(x -> x.split("\"text\": \"")[1] // 0, 1, 2....
-                                .split("}")[0]
-                                .replace("\\n", "")
-                                .replace("\"", "")
-                                .trim())
-                        .toList()
-        );
+                        }
+                );
     }
 }
