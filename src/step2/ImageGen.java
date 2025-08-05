@@ -1,5 +1,9 @@
 package step2;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -7,8 +11,10 @@ import java.util.Scanner;
 public class ImageGen {
     // 실행
     public static void main(String[] args) {
-        ImageGen gen = new ImageGen();
+        ImageGen gen = new ImageGen(3);
+//        gen.inputData(5);
         gen.inputData();
+        gen.makeImagePrompt();
     }
 
     // 빈 리스트
@@ -16,9 +22,16 @@ public class ImageGen {
 
     final private Scanner scanner = new Scanner(System.in);
 
+    final private int size;
+
+    public ImageGen(int size) {
+        this.size = size;
+    }
+
     // 입력 받기
+//    void inputData(int size) {
     void inputData() {
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < size; i++) {
             System.out.print("좋아하는 동물을 입력해주세요 : ");
             String input = scanner.nextLine();
             // trim() -> space, enter 문자열 앞뒤에 제거
@@ -28,6 +41,69 @@ public class ImageGen {
                 continue;
             }
             favoriteList.add(input);
+        }
+        System.out.println(favoriteList);
+    }
+
+    private final HttpClient httpClient = HttpClient.newHttpClient();
+    // 네트워크 통신을 위한 객체
+
+    private final List<String> imagePromptList = new ArrayList<>();
+
+    private final String GEMINI_API_KEY = System.getenv("GEMINI_API_KEY");
+
+    void makeImagePrompt() {
+        if (GEMINI_API_KEY == null) {
+            throw new RuntimeException("GEMINI_API_KEY가 없습니다!");
+        }
+        // 내부에 있는 favoriteList -> 프롬프트를 가장 잘 만드는 방법 -> AI한테 시키는 것.
+        // favoriteList <- 이미지 생성용 프롬프트 변환.
+        // https://aistudio.google.com/apikey
+        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"; // 인터넷링크
+        for (String v : favoriteList) {
+            // 무언가 생성작업을 해서
+            HttpRequest httpRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .headers("Content-Type", "application/json",
+                            "X-goog-api-key", GEMINI_API_KEY)
+                    .POST(
+                            HttpRequest.BodyPublishers.ofString(
+                            """
+                            {
+                                "contents": [
+                                  {
+                                    "parts": [
+                                      {
+                                        "text": "%s(을)를 이미지로 나타내기 위한 200자 이내의 상세한 프롬프트를 작성해줘. 결과만 작성해줘."
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            """.formatted(v)
+                            )
+                    )
+                    .build();
+            try {
+                HttpResponse<String> httpResponse = httpClient.send(
+                        httpRequest,
+                        HttpResponse.BodyHandlers.ofString()
+                );
+                String body = httpResponse.body();
+                String prompt = body
+                        .split("\"text\": \"")[1] // 0, 1, 2....
+                        .split("}")[0]
+                        .replace("\\n", "")
+                        .replace("\"", "")
+                        .trim();
+                imagePromptList.add(prompt);
+            } catch (Exception e) {
+                System.err.println(e.getMessage());
+            }
+        }
+//        System.out.println(imagePromptList);
+        for (String s : imagePromptList) {
+            System.out.println(s);
         }
     }
 }
