@@ -52,58 +52,70 @@ public class ImageGen {
 
     private final String GEMINI_API_KEY = System.getenv("GEMINI_API_KEY");
 
-    void makeImagePrompt() {
+    private String callAPI(String url, String body) {
         if (GEMINI_API_KEY == null) {
             throw new RuntimeException("GEMINI_API_KEY가 없습니다!");
         }
+        HttpRequest httpRequest = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .headers("Content-Type", "application/json",
+                        "X-goog-api-key", GEMINI_API_KEY)
+                .POST(
+                        HttpRequest.BodyPublishers.ofString(
+                                body
+                        )
+                )
+                .build();
+        try {
+            HttpResponse<String> httpResponse = httpClient.send(
+                    httpRequest,
+                    HttpResponse.BodyHandlers.ofString()
+            );
+            return httpResponse.body();
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    void makeImagePrompt() {
         // 내부에 있는 favoriteList -> 프롬프트를 가장 잘 만드는 방법 -> AI한테 시키는 것.
         // favoriteList <- 이미지 생성용 프롬프트 변환.
         // https://aistudio.google.com/apikey
         String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"; // 인터넷링크
         for (String v : favoriteList) {
             // 무언가 생성작업을 해서
-            HttpRequest httpRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .headers("Content-Type", "application/json",
-                            "X-goog-api-key", GEMINI_API_KEY)
-                    .POST(
-                            HttpRequest.BodyPublishers.ofString(
-                            """
-                            {
-                                "contents": [
-                                  {
-                                    "parts": [
+            String result = callAPI(url, """
+                                {
+                                    "contents": [
                                       {
-                                        "text": "%s(을)를 이미지로 나타내기 위한 200자 이내의 상세한 프롬프트를 작성해줘. 결과만 작성해줘."
+                                        "parts": [
+                                          {
+                                            "text": "%s(을)를 이미지로 나타내기 위한 200자 이내의 상세한 프롬프트를 작성해줘. 결과만 작성해줘."
+                                          }
+                                        ]
                                       }
                                     ]
                                   }
-                                ]
-                              }
-                            """.formatted(v)
-                            )
-                    )
-                    .build();
-            try {
-                HttpResponse<String> httpResponse = httpClient.send(
-                        httpRequest,
-                        HttpResponse.BodyHandlers.ofString()
-                );
-                String body = httpResponse.body();
-                String prompt = body
-                        .split("\"text\": \"")[1] // 0, 1, 2....
-                        .split("}")[0]
-                        .replace("\\n", "")
-                        .replace("\"", "")
-                        .trim();
-                imagePromptList.add(prompt);
-            } catch (Exception e) {
-                System.err.println(e.getMessage());
-            }
+                                """.formatted(v));
+            String prompt = result
+                    .split("\"text\": \"")[1] // 0, 1, 2....
+                    .split("}")[0]
+                    .replace("\\n", "")
+                    .replace("\"", "")
+                    .trim();
+            imagePromptList.add(prompt);
         }
 //        System.out.println(imagePromptList);
         for (String s : imagePromptList) {
             System.out.println(s);
+        }
+    }
+
+    void generateImage() {
+        for (String prompt : imagePromptList) {
+
         }
     }
 }
