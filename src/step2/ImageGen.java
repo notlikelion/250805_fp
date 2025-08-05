@@ -7,10 +7,9 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.Scanner;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.*;
 
 public class ImageGen {
     // 실행
@@ -149,7 +148,7 @@ public class ImageGen {
                     .trim();
 //            System.out.println(image64);
             byte[] imageBytes = Base64.getDecoder().decode(image64);
-            String outputPath = "%s.png".formatted(prompt.replace(" ", "_"));
+            String outputPath = "%s.png".formatted(LocalTime.now());
             Path filePath = Paths.get(outputPath);
             try {
                 Files.write(filePath, imageBytes);
