@@ -148,7 +148,7 @@ public class ImageGen {
                     .trim();
 //            System.out.println(image64);
             byte[] imageBytes = Base64.getDecoder().decode(image64);
-            String outputPath = "%s.png".formatted(LocalTime.now());
+            String outputPath = "%s.png".formatted(System.currentTimeMillis());
             Path filePath = Paths.get(outputPath);
             try {
                 Files.write(filePath, imageBytes);
