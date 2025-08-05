@@ -17,6 +17,9 @@ public class Solution03 {
         // int(Integer) x.
         System.out.println(list);
 
+        // (클래스 혹은 객체 이름)::메서드이름
+        // 클래스::static메서드
+        // 객체::메서드
         List<Integer> list2 = list.stream()
                 // abs -> absolute (절대값)
                 .map(Math::abs) // int x -> 다룰 수 있는 메서드.
